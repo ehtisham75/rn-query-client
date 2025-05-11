@@ -1,9 +1,14 @@
 import React from 'react'
-import Main from './src/main'
+import Main from './src/Main'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const App = () => {
   return (
-   <Main/>
+    <QueryClientProvider client={queryClient}>
+      <Main />
+    </QueryClientProvider>
   )
 }
 
