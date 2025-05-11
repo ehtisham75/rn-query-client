@@ -1,10 +1,8 @@
 import React from 'react';
-import { useWindowDimensions, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { screenNames } from '../configs/Enum';
-import colors from '../configs/colors';
 import Posts from '../screens/Posts';
+import ScreenNames from '../constants/ScreenNames';
 
 const AppStack = createNativeStackNavigator();
 
@@ -15,7 +13,7 @@ const AppNavigator = () => {
       <AppStack.Navigator
         screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
      
-        <AppStack.Screen name={screenNames.SETS} component={Posts} />
+        <AppStack.Screen name={ScreenNames.posts} component={Posts} />
       </AppStack.Navigator>
     </NavigationContainer>
   );
