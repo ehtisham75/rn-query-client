@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, TextInput, View } from 'react-native';
+import { ActivityIndicator, Button, StyleSheet, TextInput, View } from 'react-native';
 import { useCreatePost } from '../hooks/useCreatePost';
 
 function CreatePosts() {
@@ -31,6 +31,13 @@ function CreatePosts() {
         multiline
         style={{ marginBottom: 8, padding: 8, borderWidth: 1, height: 100 }}
       />
+
+      {isPending &&
+        <View style={styles.loaderBox}>
+          <ActivityIndicator size={'small'} color={'red'} />
+        </View>
+      }
+
       <Button
         title={isPending ? 'Creating...' : 'Create Post'}
         onPress={handleSubmit}
@@ -41,3 +48,11 @@ function CreatePosts() {
 }
 
 export default CreatePosts
+
+const styles = StyleSheet.create({
+  loaderBox: {
+    marginVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
+})
