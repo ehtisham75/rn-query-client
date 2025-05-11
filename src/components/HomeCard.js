@@ -1,15 +1,29 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
+import { useNavigation } from '@react-navigation/native';
+import ScreenNames from '../constants/ScreenNames';
 
+const numColumns = 2;
 const CARD_WIDTH = Dimensions.get('window').width / numColumns - 20;
 
-const HomeCard = ({ item }) => (
-  <View style={[styles.card, { backgroundColor: item.color }]}>
-    <Text style={styles.value}>{item.value}</Text>
-    <Text style={styles.title}>{item.title}</Text>
-    <Text style={styles.change}>{item.change}</Text>
-  </View>
-);
+const HomeCard = ({ item, onAction }) => {
+  const navigation = useNavigation();
+
+  const handleCardPress = () => {
+    if (item.title === 'Read Posts') {
+      navigation.navigate(ScreenNames.posts)
+      return
+    }
+  }
+  return (
+    <TouchableOpacity style={[styles.card, { backgroundColor: item.color }]}
+      onPress={handleCardPress} activeOpacity={0.7}>
+      <Text style={styles.value}>{item.value}</Text>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.change}>{item.change}</Text>
+    </TouchableOpacity>
+  )
+};
 
 export default HomeCard
 
