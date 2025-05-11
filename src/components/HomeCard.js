@@ -14,6 +14,10 @@ const HomeCard = ({ item, onAction }) => {
       navigation.navigate(ScreenNames.posts)
       return
     }
+    if (item.title === 'Create Posts') {
+      navigation.navigate(ScreenNames.createPosts)
+      return
+    }
   }
   return (
     <TouchableOpacity style={[styles.card, { backgroundColor: item.color }]}

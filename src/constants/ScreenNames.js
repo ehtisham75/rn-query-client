@@ -1,4 +1,5 @@
 export default {
-    posts: "Posts",
     home:"Home",
+    posts: "Posts",
+    createPosts:"CreatePosts"
 }

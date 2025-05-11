@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Posts from '../screens/Posts';
 import ScreenNames from '../constants/ScreenNames';
 import Home from '../screens/Home';
+import CreatePosts from '../screens/CreatePosts';
 
 const AppStack = createNativeStackNavigator();
 
@@ -16,6 +17,7 @@ const AppNavigator = () => {
 
         <AppStack.Screen name={ScreenNames.home} component={Home} />
         <AppStack.Screen name={ScreenNames.posts} component={Posts} />
+        <AppStack.Screen name={ScreenNames.createPosts} component={CreatePosts} />
       </AppStack.Navigator>
     </NavigationContainer>
   );
