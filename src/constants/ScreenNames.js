@@ -1,5 +1,6 @@
 export default {
     home:"Home",
     posts: "Posts",
-    createPosts:"CreatePosts"
+    createPosts:"CreatePosts",
+    interactions:"TestInteractions"
 }

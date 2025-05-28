@@ -18,6 +18,10 @@ const HomeCard = ({ item, onAction }) => {
       navigation.navigate(ScreenNames.createPosts)
       return
     }
+    if (item.title === 'Likes') {
+      navigation.navigate(ScreenNames.interactions)
+      return
+    }
   }
   return (
     <TouchableOpacity style={[styles.card, { backgroundColor: item.color }]}
