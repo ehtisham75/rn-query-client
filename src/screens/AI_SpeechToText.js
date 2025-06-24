@@ -21,7 +21,9 @@ const audioRecorderPlayer = new AudioRecorderPlayer();
 const SpeechToText = () => {
     const [transcription, setTranscription] = useState('');
     const [isRecording, setIsRecording] = useState(false);
+    const [loading, setLoading] = useState(false);
     const audioPath = useRef('');
+    const micAnimation = useRef(null);
 
     const [progress] = useState(new Animated.Value(0));
     const [pitch, setPitch] = useState('');
@@ -52,7 +54,7 @@ const SpeechToText = () => {
             setError('');
 
             // Animation
-            Animated.loop(
+            micAnimation.current = Animated.loop(
                 Animated.sequence([
                     Animated.timing(progress, {
                         toValue: 1,
@@ -67,7 +69,10 @@ const SpeechToText = () => {
                         useNativeDriver: true,
                     }),
                 ])
-            ).start();
+            );
+
+            micAnimation.current.start();
+
         } catch (e) {
             setError(JSON.stringify(e));
         }
@@ -78,46 +83,72 @@ const SpeechToText = () => {
             const result = await audioRecorderPlayer.stopRecorder();
             audioRecorderPlayer.removeRecordBackListener();
             setIsRecording(false);
-            console.log('Audio file path:', result);
-            // sendToOpenAI(result);
 
-            Animated.timing(progress).stop();
+            console.log("=== Audio path result ===", result)
+            if (micAnimation.current) {
+                micAnimation.current.stop();
+                micAnimation.current = null;
+            }
+
+            // Prevent multiple submissions
+            if (!loading) {
+                setLoading(true);
+                await sendToOpenAI(result);
+                setLoading(false);
+            }
+
         } catch (e) {
             setError(JSON.stringify(e));
+            setLoading(false);
         }
     };
 
     const sendToOpenAI = async (filePath) => {
         const file = {
             uri: Platform.OS === 'android' ? `file://${filePath}` : filePath,
-            type: 'audio/mpeg',
-            name: 'recording.mp3',
+            type: 'audio/x-m4a',
+            name: 'recording.m4a',
         };
 
+        console.log("=== file in open ai =====", file)
         const formData = new FormData();
         formData.append('file', file);
         formData.append('model', 'whisper-1');
 
-        try {
-            const response = await axios.post(
-                'https://api.openai.com/v1/audio/transcriptions',
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer YOUR_OPENAI_API_KEY`,
-                    },
+        console.log("=== open ai form data=====", formData)
+
+        let retries = 3;
+        let delay = 1000;
+
+        for (let attempt = 0; attempt < retries; attempt++) {
+            try {
+                const response = await axios.post(
+                    'https://api.openai.com/v1/audio/transcriptions',
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                            Authorization: `Bearer ${keys.OPEN_API_SECRET_KEY}`,
+                        },
+                    }
+                );
+                setTranscription(response.data.text);
+                return;
+            } catch (error) {
+                if (error.response?.status === 429 && attempt < retries - 1) {
+                    console.warn(`Rate limited. Retrying in ${delay}ms...`);
+                    await new Promise((res) => setTimeout(res, delay));
+                    delay *= 2; // Exponential backoff
+                } else {
+                    setError('Whisper API error: ' + error.message);
+                    console.error('Whisper API error:', error);
+                    return;
                 }
-            );
-            setTranscription(response.data.text);
-        } catch (error) {
-            console.error('Whisper API error:', error);
+            }
         }
     };
 
-
     useEffect(() => {
-        console.log("=== test ai key ====", keys.OPEN_API_SECRET_KEY)
     }, [])
 
     const scale = progress.interpolate({
@@ -127,64 +158,56 @@ const SpeechToText = () => {
 
 
     return (
-        <>
-            {/* <View style={{ flex: 1, padding: 20 }}>
-                <Button title={isRecording ? "Stop Recording" : "Start Recording"} onPress={isRecording ? stopRecording : startRecording} />
-                <Text style={{ marginTop: 20, fontSize: 18 }}>{transcription}</Text>
-                <Text style={{ marginTop: 20, fontSize: 18 }}>{ }</Text>
-            </View> */}
+        <View style={styles.container}>
+            <Text style={styles.title}>Speech to Text</Text>
 
-            <View style={styles.container}>
-                <Text style={styles.title}>Speech to Text</Text>
-
-                <View style={styles.textContainer}>
-                    <Text style={styles.text}>{transcription || 'Your transcribed text will appear here...'}</Text>
-                    {pitch ? <Text style={styles.pitch}>Voice pitch: {pitch}</Text> : null}
-                </View>
-
-                <Animated.View style={[styles.micButton, { transform: [{ scale }] }]}>
-                    <TouchableOpacity
-                        onPressIn={startRecording}
-                        onPressOut={stopRecording}
-                        activeOpacity={0.7}
-                    >
-                        <Image source={isRecording ? require('../assets/images/mic.png')
-                            : require('../assets/images/mic-off.png')}
-                            style={{
-                                width: 30, height: 30,
-                                tintColor: isRecording ? '#03DAC6' : '#E1E1E1'
-                            }}
-                        />
-                    </TouchableOpacity>
-                </Animated.View>
-
-                <View style={styles.controls}>
-                    <TouchableOpacity style={styles.controlButton}>
-                        {/* <MaterialIcons name="history" size={24} color="#E1E1E1" /> */}
-                        <Image source={require('../assets/images/history.png')}
-                            style={{
-                                width: 20, height: 20,
-                                tintColor: '#E1E1E1'
-                            }}
-                        />
-                        <Text style={styles.controlText}>History</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.controlButton}>
-                        {/* <MaterialIcons name="settings" size={24} color="#E1E1E1" /> */}
-                        <Image source={require('../assets/images/settings.png')}
-                            style={{
-                                width: 20, height: 20,
-                                tintColor: '#E1E1E1'
-                            }}
-                        />
-                        <Text style={styles.controlText}>Settings</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {error ? <Text style={styles.error}>{error}</Text> : null}
+            <View style={styles.textContainer}>
+                <Text style={styles.text}>{transcription || 'Your transcribed text will appear here...'}</Text>
+                {pitch ? <Text style={styles.pitch}>Voice pitch: {pitch}</Text> : null}
             </View>
-        </>
+
+            <Animated.View style={[styles.micButton, { transform: [{ scale }] }]}>
+                <TouchableOpacity
+                    onPressIn={startRecording}
+                    onPressOut={stopRecording}
+                    activeOpacity={0.7}
+                >
+                    <Image source={isRecording ? require('../assets/images/mic.png')
+                        : require('../assets/images/mic-off.png')}
+                        style={{
+                            width: 30, height: 30,
+                            tintColor: isRecording ? '#03DAC6' : '#E1E1E1'
+                        }}
+                    />
+                </TouchableOpacity>
+            </Animated.View>
+
+            <View style={styles.controls}>
+                <TouchableOpacity style={styles.controlButton}>
+                    {/* <MaterialIcons name="history" size={24} color="#E1E1E1" /> */}
+                    <Image source={require('../assets/images/history.png')}
+                        style={{
+                            width: 20, height: 20,
+                            tintColor: '#E1E1E1'
+                        }}
+                    />
+                    <Text style={styles.controlText}>History</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.controlButton}>
+                    {/* <MaterialIcons name="settings" size={24} color="#E1E1E1" /> */}
+                    <Image source={require('../assets/images/settings.png')}
+                        style={{
+                            width: 20, height: 20,
+                            tintColor: '#E1E1E1'
+                        }}
+                    />
+                    <Text style={styles.controlText}>Settings</Text>
+                </TouchableOpacity>
+            </View>
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+        </View>
     );
 };
 
