@@ -6,6 +6,7 @@ import ScreenNames from '../constants/ScreenNames';
 import Home from '../screens/Home';
 import CreatePosts from '../screens/CreatePosts';
 import TestInteractions from '../screens/TestInteractions';
+import AI_SpeechToText from '../screens/AI_SpeechToText';
 
 const AppStack = createNativeStackNavigator();
 
@@ -16,6 +17,7 @@ const AppNavigator = () => {
       <AppStack.Navigator
         screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
 
+        <AppStack.Screen name={ScreenNames.speechToText} component={AI_SpeechToText} />
         <AppStack.Screen name={ScreenNames.home} component={Home} />
         <AppStack.Screen name={ScreenNames.posts} component={Posts} />
         <AppStack.Screen name={ScreenNames.createPosts} component={CreatePosts} />
