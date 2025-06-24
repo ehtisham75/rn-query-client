@@ -1,135 +1,262 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, PermissionsAndroid } from 'react-native';
-import Voice from '@react-native-community/voice';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    Animated,
+    Easing,
+    Dimensions,
+    PermissionsAndroid,
+    Platform,
+    Button,
+    Image
+} from 'react-native';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import axios from 'axios';
+import keys from '../utils/keys';
 
-const AI_SpeechToText = () => {
-  
-  const [isRecording, setIsRecording] = useState(false);
-  const [text, setText] = useState('');
-  const [error, setError] = useState('');
+const audioRecorderPlayer = new AudioRecorderPlayer();
 
-  // Request microphone permission
-  const requestMicrophonePermission = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        {
-          title: 'Microphone Permission',
-          message: 'App needs access to your microphone',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
+const SpeechToText = () => {
+    const [transcription, setTranscription] = useState('');
+    const [isRecording, setIsRecording] = useState(false);
+    const audioPath = useRef('');
+
+    const [progress] = useState(new Animated.Value(0));
+    const [pitch, setPitch] = useState('');
+    const [error, setError] = useState('');
+
+    const requestPermissions = async () => {
+        if (Platform.OS === 'android') {
+            const granted = await PermissionsAndroid.requestMultiple([
+                PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+            ]);
+            return (
+                granted['android.permission.RECORD_AUDIO'] === PermissionsAndroid.RESULTS.GRANTED
+            );
         }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.error(err);
-      return false;
-    }
-  };
+        return true;
+    };
 
-  // Start recording
-  const startRecording = async () => {
-    try {
-      const hasPermission = await requestMicrophonePermission();
-      if (!hasPermission) {
-        setError('Microphone permission denied');
-        return;
-      }
+    const startRecording = async () => {
+        try {
+            const hasPermission = await requestPermissions();
+            if (!hasPermission) return;
 
-      setIsRecording(true);
-      setText('');
-      await Voice.start('en-US'); // You can change the language code
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
-    }
-  };
+            const result = await audioRecorderPlayer.startRecorder();
+            audioPath.current = result;
+            setIsRecording(true);
+            setError('');
 
-  // Stop recording
-  const stopRecording = async () => {
-    try {
-      setIsRecording(false);
-      await Voice.stop();
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
-    }
-  };
-
-  // Send audio to OpenAI
-  const sendToOpenAI = async (audioUri) => {
-    try {
-      // Note: You'll need to handle the audio file properly for OpenAI
-      // This is a simplified example
-      const response = await axios.post(
-        'https://api.openai.com/v1/audio/transcriptions',
-        {
-          file: audioUri,
-          model: 'whisper-1',
-        },
-        {
-          headers: {
-            'Authorization': `Bearer YOUR_OPENAI_API_KEY`,
-            'Content-Type': 'multipart/form-data',
-          },
+            // Animation
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(progress, {
+                        toValue: 1,
+                        duration: 1000,
+                        easing: Easing.linear,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(progress, {
+                        toValue: 0,
+                        duration: 1000,
+                        easing: Easing.linear,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        } catch (e) {
+            setError(JSON.stringify(e));
         }
-      );
-      setText(response.data.text);
-    } catch (error) {
-      console.error('OpenAI Error:', error);
-      setError('Failed to process audio');
-    }
-  };
-
-  // Voice handler events
-  useEffect(() => {
-    Voice.onSpeechStart = () => console.log('Speech started');
-    Voice.onSpeechEnd = () => console.log('Speech ended');
-    Voice.onSpeechResults = (e) => {
-      // For local speech recognition (not using OpenAI)
-      setText(e.value[0]);
-    };
-    Voice.onSpeechError = (e) => {
-      console.error(e.error);
-      setError(e.error.message);
     };
 
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
+    const stopRecording = async () => {
+        try {
+            const result = await audioRecorderPlayer.stopRecorder();
+            audioRecorderPlayer.removeRecordBackListener();
+            setIsRecording(false);
+            console.log('Audio file path:', result);
+            // sendToOpenAI(result);
+
+            Animated.timing(progress).stop();
+        } catch (e) {
+            setError(JSON.stringify(e));
+        }
     };
-  }, []);
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{text}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      
-      {isRecording ? (
-        <Button title="Stop Recording" onPress={stopRecording} />
-      ) : (
-        <Button title="Start Recording" onPress={startRecording} />
-      )}
-    </View>
-  );
-}
+    const sendToOpenAI = async (filePath) => {
+        const file = {
+            uri: Platform.OS === 'android' ? `file://${filePath}` : filePath,
+            type: 'audio/mpeg',
+            name: 'recording.mp3',
+        };
 
-export default AI_SpeechToText
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('model', 'whisper-1');
+
+        try {
+            const response = await axios.post(
+                'https://api.openai.com/v1/audio/transcriptions',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer YOUR_OPENAI_API_KEY`,
+                    },
+                }
+            );
+            setTranscription(response.data.text);
+        } catch (error) {
+            console.error('Whisper API error:', error);
+        }
+    };
+
+
+    useEffect(() => {
+        console.log("=== test ai key ====", keys.OPEN_API_SECRET_KEY)
+    }, [])
+
+    const scale = progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.2],
+    });
+
+
+    return (
+        <>
+            {/* <View style={{ flex: 1, padding: 20 }}>
+                <Button title={isRecording ? "Stop Recording" : "Start Recording"} onPress={isRecording ? stopRecording : startRecording} />
+                <Text style={{ marginTop: 20, fontSize: 18 }}>{transcription}</Text>
+                <Text style={{ marginTop: 20, fontSize: 18 }}>{ }</Text>
+            </View> */}
+
+            <View style={styles.container}>
+                <Text style={styles.title}>Speech to Text</Text>
+
+                <View style={styles.textContainer}>
+                    <Text style={styles.text}>{transcription || 'Your transcribed text will appear here...'}</Text>
+                    {pitch ? <Text style={styles.pitch}>Voice pitch: {pitch}</Text> : null}
+                </View>
+
+                <Animated.View style={[styles.micButton, { transform: [{ scale }] }]}>
+                    <TouchableOpacity
+                        onPressIn={startRecording}
+                        onPressOut={stopRecording}
+                        activeOpacity={0.7}
+                    >
+                        <Image source={isRecording ? require('../assets/images/mic.png')
+                            : require('../assets/images/mic-off.png')}
+                            style={{
+                                width: 30, height: 30,
+                                tintColor: isRecording ? '#03DAC6' : '#E1E1E1'
+                            }}
+                        />
+                    </TouchableOpacity>
+                </Animated.View>
+
+                <View style={styles.controls}>
+                    <TouchableOpacity style={styles.controlButton}>
+                        {/* <MaterialIcons name="history" size={24} color="#E1E1E1" /> */}
+                        <Image source={require('../assets/images/history.png')}
+                            style={{
+                                width: 20, height: 20,
+                                tintColor: '#E1E1E1'
+                            }}
+                        />
+                        <Text style={styles.controlText}>History</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.controlButton}>
+                        {/* <MaterialIcons name="settings" size={24} color="#E1E1E1" /> */}
+                        <Image source={require('../assets/images/settings.png')}
+                            style={{
+                                width: 20, height: 20,
+                                tintColor: '#E1E1E1'
+                            }}
+                        />
+                        <Text style={styles.controlText}>Settings</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {error ? <Text style={styles.error}>{error}</Text> : null}
+            </View>
+        </>
+    );
+};
+
+export default SpeechToText;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  text: {
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  error: {
-    color: 'red',
-    marginBottom: 20,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#121212',
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    title: {
+        color: '#E1E1E1',
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: 40,
+        marginBottom: 20,
+    },
+    textContainer: {
+        backgroundColor: '#1E1E1E',
+        width: '100%',
+        minHeight: 150,
+        borderRadius: 12,
+        padding: 15,
+        marginVertical: 20,
+    },
+    text: {
+        color: '#E1E1E1',
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    pitch: {
+        color: '#03DAC6',
+        fontSize: 14,
+        marginTop: 10,
+        fontStyle: 'italic',
+    },
+    micButton: {
+        backgroundColor: '#6200EE',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 5,
+        shadowColor: '#6200EE',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    controls: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+        marginTop: 30,
+        marginBottom: 20,
+    },
+    controlButton: {
+        alignItems: 'center',
+    },
+    controlText: {
+        color: '#E1E1E1',
+        fontSize: 12,
+        marginTop: 5,
+    },
+    error: {
+        color: '#CF6679',
+        fontSize: 14,
+        marginTop: 10,
+    },
 });
+
+
