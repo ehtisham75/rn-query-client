@@ -48,8 +48,13 @@ const SpeechToText = () => {
             const hasPermission = await requestPermissions();
             if (!hasPermission) return;
 
-            const result = await audioRecorderPlayer.startRecorder();
+            const result = await audioRecorderPlayer.startRecorder(undefined, {
+                encoding: 'mp3', // or 'm4a'
+                audioQuality: 'high',
+            });
             audioPath.current = result;
+
+            console.log("=== pehla audio link ===", result)
             setIsRecording(true);
             setError('');
 
@@ -82,20 +87,22 @@ const SpeechToText = () => {
         try {
             const result = await audioRecorderPlayer.stopRecorder();
             audioRecorderPlayer.removeRecordBackListener();
+
+            audioPath.current = result;
+
             setIsRecording(false);
 
-            console.log("=== Audio path result ===", result)
+            console.log("=== Audio path result 09090===", audioPath.current)
             if (micAnimation.current) {
                 micAnimation.current.stop();
                 micAnimation.current = null;
             }
 
-            // Prevent multiple submissions
-            if (!loading) {
-                setLoading(true);
-                await sendToOpenAI(result);
-                setLoading(false);
-            }
+            // if (!loading) {
+            //     setLoading(true);
+            //     await sendToOpenAI(result);
+            //     setLoading(false);
+            // }
 
         } catch (e) {
             setError(JSON.stringify(e));
@@ -105,9 +112,12 @@ const SpeechToText = () => {
 
     const sendToOpenAI = async (filePath) => {
         const file = {
-            uri: Platform.OS === 'android' ? `file://${filePath}` : filePath,
-            type: 'audio/x-m4a',
-            name: 'recording.m4a',
+            // uri: Platform.OS === 'android' ? `file://${filePath}` : filePath,
+            uri: audioPath.current,
+            type: 'audio/mp4',
+            name: `recording_${Date.now()}.mp4`,
+            // type: 'audio/mp3',
+            // name: 'recording.mp3',
         };
 
         console.log("=== file in open ai =====", file)
@@ -182,9 +192,25 @@ const SpeechToText = () => {
                 </TouchableOpacity>
             </Animated.View>
 
+
+            <TouchableOpacity
+                onPress={() => { sendToOpenAI() }}
+                style={{
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: "80%",
+                    height: 60,
+                    borderRadius: 10,
+                    backgroundColor: '#6200EE',
+                }}>
+                <Text style={{
+                    color: 'white',
+                    fontSize: 18,
+                }}>Send</Text>
+            </TouchableOpacity>
+
             <View style={styles.controls}>
                 <TouchableOpacity style={styles.controlButton}>
-                    {/* <MaterialIcons name="history" size={24} color="#E1E1E1" /> */}
                     <Image source={require('../assets/images/history.png')}
                         style={{
                             width: 20, height: 20,
@@ -195,7 +221,6 @@ const SpeechToText = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.controlButton}>
-                    {/* <MaterialIcons name="settings" size={24} color="#E1E1E1" /> */}
                     <Image source={require('../assets/images/settings.png')}
                         style={{
                             width: 20, height: 20,
