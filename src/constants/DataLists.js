@@ -27,4 +27,11 @@ export const home_cards_list = [
     change: '+3.1%',
     color: '#FFA500',
   },
+  {
+    id: '5',
+    value: 'Open ai',
+    title: 'Speech to Text',
+    change: '+3.1%',
+    color: '#FFA500',
+  },
 ];

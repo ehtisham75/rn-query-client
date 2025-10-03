@@ -72,3 +72,14 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env*.backup
+.env*.tmp
+
+src/utils/keys.js
