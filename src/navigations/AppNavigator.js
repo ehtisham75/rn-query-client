@@ -17,10 +17,10 @@ const AppNavigator = () => {
       <AppStack.Navigator
         screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
 
-        <AppStack.Screen name={ScreenNames.speechToText} component={AI_SpeechToText} />
         <AppStack.Screen name={ScreenNames.home} component={Home} />
         <AppStack.Screen name={ScreenNames.posts} component={Posts} />
         <AppStack.Screen name={ScreenNames.createPosts} component={CreatePosts} />
+        <AppStack.Screen name={ScreenNames.speechToText} component={AI_SpeechToText} />
         <AppStack.Screen name={ScreenNames.interactions} component={TestInteractions} />
       </AppStack.Navigator>
     </NavigationContainer>

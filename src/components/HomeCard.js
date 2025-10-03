@@ -22,6 +22,10 @@ const HomeCard = ({ item, onAction }) => {
       navigation.navigate(ScreenNames.interactions)
       return
     }
+    if (item.title === 'Speech to Text') {
+      navigation.navigate(ScreenNames.speechToText)
+      return
+    }
   }
   return (
     <TouchableOpacity style={[styles.card, { backgroundColor: item.color }]}
