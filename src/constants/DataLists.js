@@ -34,4 +34,11 @@ export const home_cards_list = [
     change: '+3.1%',
     color: '#FFA500',
   },
+  {
+    id: '6',
+    value: 'Stripe',
+    title: 'Stripe',
+    change: '+3.8%',
+    color: '#00C897',
+  },
 ];

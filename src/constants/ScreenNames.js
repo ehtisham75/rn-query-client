@@ -3,5 +3,6 @@ export default {
     posts: "Posts",
     createPosts:"CreatePosts",
     interactions:"TestInteractions",
-    speechToText:"AI_SpeechToText"
+    speechToText:"AI_SpeechToText",
+    stripeScreen:"StripeScreen"
 }

@@ -7,6 +7,7 @@ import Home from '../screens/Home';
 import CreatePosts from '../screens/CreatePosts';
 import TestInteractions from '../screens/TestInteractions';
 import AI_SpeechToText from '../screens/AI_SpeechToText';
+import StripeScreen from '../screens/stripe/StripeScreen';
 
 const AppStack = createNativeStackNavigator();
 
@@ -21,6 +22,7 @@ const AppNavigator = () => {
         <AppStack.Screen name={ScreenNames.posts} component={Posts} />
         <AppStack.Screen name={ScreenNames.createPosts} component={CreatePosts} />
         <AppStack.Screen name={ScreenNames.speechToText} component={AI_SpeechToText} />
+        <AppStack.Screen name={ScreenNames.stripeScreen} component={StripeScreen} />
         <AppStack.Screen name={ScreenNames.interactions} component={TestInteractions} />
       </AppStack.Navigator>
     </NavigationContainer>
