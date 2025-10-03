@@ -143,6 +143,8 @@ const SpeechToText = () => {
                     }
                 );
                 setTranscription(response.data.text);
+
+                console.log("==== response of api ====", JSON.stringify(response?.data))
                 return;
             } catch (error) {
                 if (error.response?.status === 429 && attempt < retries - 1) {
