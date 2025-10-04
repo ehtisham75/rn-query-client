@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Button, Text, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { CardField, useConfirmPayment, useStripe } from '@stripe/stripe-react-native';
 import keys from '../../utils/keys';
+import Colors from '../../theme/Colors';
 
 const CheckoutScreen = () => {
     const [clientSecret, setClientSecret] = useState('');
@@ -67,7 +68,7 @@ const CheckoutScreen = () => {
                     number: '4242 4242 4242 4242',
                 }}
                 cardStyle={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: Colors.light_green,
                     textColor: '#000000',
                 }}
                 style={{
